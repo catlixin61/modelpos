@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仪表盘 - 北岛 AI 姿态矫正器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>北岛 AI</h1>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>仪表盘</span>
+                </a>
+                <a href="users.html" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span>用户管理</span>
+                </a>
+                <a href="devices.html" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                        <rect x="9" y="9" width="6" height="6"></rect>
+                        <line x1="9" y1="1" x2="9" y2="4"></line>
+                        <line x1="15" y1="1" x2="15" y2="4"></line>
+                        <line x1="9" y1="20" x2="9" y2="23"></line>
+                        <line x1="15" y1="20" x2="15" y2="23"></line>
+                        <line x1="20" y1="9" x2="23" y2="9"></line>
+                        <line x1="20" y1="14" x2="23" y2="14"></line>
+                        <line x1="1" y1="9" x2="4" y2="9"></line>
+                        <line x1="1" y1="14" x2="4" y2="14"></line>
+                    </svg>
+                    <span>设备管理</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容 -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">仪表盘</h1>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-value" id="stat-users">-</div>
+                    <div class="stat-label">注册用户</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                            <rect x="9" y="9" width="6" height="6"></rect>
+                        </svg>
+                    </div>
+                    <div class="stat-value" id="stat-devices">-</div>
+                    <div class="stat-label">注册设备</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon warning">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-value" id="stat-online">-</div>
+                    <div class="stat-label">在线设备</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon info">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-value" id="stat-paired">-</div>
+                    <div class="stat-label">已配对</div>
+                </div>
+            </div>
+
+            <!-- 最近用户 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">最近注册用户</h2>
+                    <a href="users.html" class="btn btn-secondary btn-sm">查看全部</a>
+                </div>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>用户</th>
+                                <th>手机号</th>
+                                <th>设备数</th>
+                                <th>注册时间</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-users">
+                            <tr>
+                                <td colspan="5" class="empty-state">
+                                    <div class="loading-spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // 页面初始化
+        async function init() {
+            const isAuth = await auth.requireAuth();
+            if (!isAuth) return;
+
+            await initSidebar();
+            highlightActiveNav();
+            await loadDashboardData();
+        }
+
+        // 加载仪表盘数据
+        async function loadDashboardData() {
+            try {
+                // 加载用户统计
+                const usersResult = await api.getUsers(1, 5);
+                if (usersResult.code === 0) {
+                    document.getElementById('stat-users').textContent = usersResult.data.total;
+
+                    // 渲染最近用户
+                    const tbody = document.getElementById('recent-users');
+                    if (usersResult.data.items.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><p>暂无用户</p></td></tr>';
+                    } else {
+                        tbody.innerHTML = usersResult.data.items.map(user => `
+                            <tr>
+                                <td>${user.nickname}</td>
+                                <td>${Format.phone(user.phone)}</td>
+                                <td>${user.device_count}</td>
+                                <td>${Format.datetime(user.created_at)}</td>
+                                <td>
+                                    <span class="badge ${user.is_active ? 'badge-success' : 'badge-danger'}">
+                                        ${user.is_active ? '正常' : '禁用'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+
+                // 加载设备统计
+                const devicesResult = await api.getDevices(1, 100);
+                if (devicesResult.code === 0) {
+                    const devices = devicesResult.data.items;
+                    document.getElementById('stat-devices').textContent = devicesResult.data.total;
+                    document.getElementById('stat-online').textContent = devices.filter(d => d.is_online).length;
+                    document.getElementById('stat-paired').textContent = devices.filter(d => d.paired_device_id).length;
+                }
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                Toast.error('加载数据失败');
+            }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

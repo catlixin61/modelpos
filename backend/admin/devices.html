@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备管理 - 北岛 AI 姿态矫正器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>北岛 AI</h1>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>仪表盘</span>
+                </a>
+                <a href="users.html" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span>用户管理</span>
+                </a>
+                <a href="devices.html" class="nav-item active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                        <rect x="9" y="9" width="6" height="6"></rect>
+                        <line x1="9" y1="1" x2="9" y2="4"></line>
+                        <line x1="15" y1="1" x2="15" y2="4"></line>
+                        <line x1="9" y1="20" x2="9" y2="23"></line>
+                        <line x1="15" y1="20" x2="15" y2="23"></line>
+                        <line x1="20" y1="9" x2="23" y2="9"></line>
+                        <line x1="20" y1="14" x2="23" y2="14"></line>
+                        <line x1="1" y1="9" x2="4" y2="9"></line>
+                        <line x1="1" y1="14" x2="4" y2="14"></line>
+                    </svg>
+                    <span>设备管理</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info"></div>
+            </div>
+        </aside>
+
+        <!-- 主内容 -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">设备管理</h1>
+            </div>
+
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <div class="search-box">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" class="search-input" id="search-input" placeholder="搜索 MAC 地址或名称...">
+                </div>
+
+                <div class="filter-group">
+                    <button class="filter-btn active" data-type="" onclick="filterByType(this, '')">全部</button>
+                    <button class="filter-btn" data-type="detector"
+                        onclick="filterByType(this, 'detector')">探测器</button>
+                    <button class="filter-btn" data-type="feedbacker"
+                        onclick="filterByType(this, 'feedbacker')">反馈器</button>
+                </div>
+            </div>
+
+            <!-- 设备列表 -->
+            <div class="card">
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>MAC 地址</th>
+                                <th>类型</th>
+                                <th>名称</th>
+                                <th>固件版本</th>
+                                <th>绑定用户</th>
+                                <th>配对设备</th>
+                                <th>状态</th>
+                                <th>最后在线</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devices-table">
+                            <tr>
+                                <td colspan="10" class="empty-state">
+                                    <div class="loading-spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页 -->
+                <div class="pagination">
+                    <div class="pagination-info" id="pagination-info">-</div>
+                    <div class="pagination-controls" id="pagination-controls"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 编辑设备模态框 -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">编辑设备</h3>
+                <button class="modal-close" onclick="Modal.hide('edit-modal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-device-id">
+                <div class="form-group">
+                    <label class="form-label">MAC 地址</label>
+                    <input type="text" class="form-input" id="edit-mac" disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">设备名称</label>
+                    <input type="text" class="form-input" id="edit-name" placeholder="为设备取个名字">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">固件版本</label>
+                    <input type="text" class="form-input" id="edit-firmware">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Modal.hide('edit-modal')">取消</button>
+                <button class="btn btn-primary" onclick="saveDevice()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 配对设备模态框 -->
+    <div class="modal-overlay" id="pair-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">配对设备</h3>
+                <button class="modal-close" onclick="Modal.hide('pair-modal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pair-detector-id">
+                <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                    选择要与探测器配对的反馈器:
+                </p>
+                <div class="form-group">
+                    <label class="form-label">探测器</label>
+                    <input type="text" class="form-input" id="pair-detector-mac" disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">反馈器</label>
+                    <select class="form-input" id="pair-feedbacker-id">
+                        <option value="">请选择反馈器</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Modal.hide('pair-modal')">取消</button>
+                <button class="btn btn-primary" onclick="pairDevices()">配对</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        let currentPage = 1;
+        const pageSize = 20;
+        let searchKeyword = '';
+        let filterType = '';
+        let allDevices = [];
+
+        // 页面初始化
+        async function init() {
+            const isAuth = await auth.requireAuth();
+            if (!isAuth) return;
+
+            await initSidebar();
+            highlightActiveNav();
+
+            // 搜索事件
+            let searchTimeout;
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchKeyword = e.target.value.trim();
+                    currentPage = 1;
+                    loadDevices();
+                }, 300);
+            });
+
+            await loadDevices();
+        }
+
+        // 按类型筛选
+        function filterByType(btn, type) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterType = type;
+            currentPage = 1;
+            loadDevices();
+        }
+
+        // 加载设备列表
+        async function loadDevices() {
+            const tbody = document.getElementById('devices-table');
+            tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="loading-spinner"></div></td></tr>';
+
+            try {
+                const result = await api.getDevices(currentPage, pageSize, filterType || null, searchKeyword || null);
+
+                if (result.code !== 0) {
+                    throw new Error(result.message);
+                }
+
+                const { items, total, page, total_pages } = result.data;
+                allDevices = items;
+
+                if (items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><p>暂无设备</p></td></tr>';
+                } else {
+                    tbody.innerHTML = items.map(device => `
+                        <tr>
+                            <td>${device.id}</td>
+                            <td><code>${device.mac_address}</code></td>
+                            <td>
+                                <span class="badge ${device.device_type === 'detector' ? 'badge-info' : 'badge-warning'}">
+                                    ${Format.deviceType(device.device_type)}
+                                </span>
+                            </td>
+                            <td>${device.name || '-'}</td>
+                            <td>${device.firmware_version}</td>
+                            <td>${device.user_phone ? Format.phone(device.user_phone) : '-'}</td>
+                            <td>${device.paired_device_mac || '-'}</td>
+                            <td>
+                                <span class="status-dot ${device.is_online ? 'online' : 'offline'}"></span>
+                                ${device.is_online ? '在线' : '离线'}
+                            </td>
+                            <td>${Format.datetime(device.last_seen_at)}</td>
+                            <td>
+                                <button class="btn btn-icon" onclick="editDevice(${device.id})" title="编辑">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                                ${device.device_type === 'detector' ? `
+                                <button class="btn btn-icon" onclick="openPairModal(${device.id}, '${device.mac_address}')" title="配对">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                    </svg>
+                                </button>
+                                ` : ''}
+                                <button class="btn btn-icon" onclick="deleteDevice(${device.id}, '${device.mac_address}')" title="删除">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+                // 更新分页信息
+                document.getElementById('pagination-info').textContent =
+                    `共 ${total} 条，第 ${page} / ${total_pages} 页`;
+
+                // 渲染分页控件
+                renderPagination(page, total_pages);
+
+            } catch (error) {
+                console.error('加载设备失败:', error);
+                Toast.error('加载失败: ' + error.message);
+                tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><p>加载失败</p></td></tr>';
+            }
+        }
+
+        // 渲染分页
+        function renderPagination(current, total) {
+            const container = document.getElementById('pagination-controls');
+            let html = '';
+
+            html += `<button class="pagination-btn" ${current <= 1 ? 'disabled' : ''} onclick="goToPage(${current - 1})">上一页</button>`;
+
+            const start = Math.max(1, current - 2);
+            const end = Math.min(total, current + 2);
+
+            for (let i = start; i <= end; i++) {
+                html += `<button class="pagination-btn ${i === current ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+
+            html += `<button class="pagination-btn" ${current >= total ? 'disabled' : ''} onclick="goToPage(${current + 1})">下一页</button>`;
+
+            container.innerHTML = html;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            loadDevices();
+        }
+
+        // 编辑设备
+        async function editDevice(deviceId) {
+            try {
+                const result = await api.getDevice(deviceId);
+                if (result.code === 0) {
+                    const device = result.data;
+                    document.getElementById('edit-device-id').value = device.id;
+                    document.getElementById('edit-mac').value = device.mac_address;
+                    document.getElementById('edit-name').value = device.name || '';
+                    document.getElementById('edit-firmware').value = device.firmware_version;
+                    Modal.show('edit-modal');
+                }
+            } catch (error) {
+                Toast.error('获取设备信息失败');
+            }
+        }
+
+        // 保存设备
+        async function saveDevice() {
+            const deviceId = document.getElementById('edit-device-id').value;
+            const name = document.getElementById('edit-name').value.trim();
+            const firmwareVersion = document.getElementById('edit-firmware').value.trim();
+
+            try {
+                const result = await api.updateDevice(deviceId, {
+                    name,
+                    firmware_version: firmwareVersion,
+                });
+
+                if (result.code === 0) {
+                    Toast.success('保存成功');
+                    Modal.hide('edit-modal');
+                    loadDevices();
+                } else {
+                    Toast.error(result.message);
+                }
+            } catch (error) {
+                Toast.error('保存失败: ' + error.message);
+            }
+        }
+
+        // 打开配对模态框
+        async function openPairModal(detectorId, detectorMac) {
+            document.getElementById('pair-detector-id').value = detectorId;
+            document.getElementById('pair-detector-mac').value = detectorMac;
+
+            // 加载所有反馈器
+            try {
+                const result = await api.getDevices(1, 100, 'feedbacker');
+                const feedbackers = result.code === 0 ? result.data.items : [];
+
+                const select = document.getElementById('pair-feedbacker-id');
+                select.innerHTML = '<option value="">请选择反馈器</option>' +
+                    feedbackers.map(f => `<option value="${f.id}">${f.mac_address} ${f.name ? '(' + f.name + ')' : ''}</option>`).join('');
+
+                Modal.show('pair-modal');
+            } catch (error) {
+                Toast.error('加载反馈器列表失败');
+            }
+        }
+
+        // 配对设备
+        async function pairDevices() {
+            const detectorId = document.getElementById('pair-detector-id').value;
+            const feedbackerId = document.getElementById('pair-feedbacker-id').value;
+
+            if (!feedbackerId) {
+                Toast.error('请选择反馈器');
+                return;
+            }
+
+            try {
+                const result = await api.pairDevice(detectorId, feedbackerId);
+
+                if (result.code === 0) {
+                    Toast.success('配对成功');
+                    Modal.hide('pair-modal');
+                    loadDevices();
+                } else {
+                    Toast.error(result.message);
+                }
+            } catch (error) {
+                Toast.error('配对失败: ' + error.message);
+            }
+        }
+
+        // 删除设备
+        function deleteDevice(deviceId, mac) {
+            Modal.confirm('删除设备', `确定要删除设备 "${mac}" 吗？此操作不可恢复。`, async () => {
+                try {
+                    const result = await api.deleteDevice(deviceId);
+                    if (result.code === 0) {
+                        Toast.success('删除成功');
+                        loadDevices();
+                    } else {
+                        Toast.error(result.message);
+                    }
+                } catch (error) {
+                    Toast.error('删除失败: ' + error.message);
+                }
+            });
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

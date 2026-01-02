@@ -1,0 +1,60 @@
+[project]
+name = "modelpos-backend"
+version = "0.1.0"
+description = "北岛 AI 姿态矫正器后端服务"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "北岛团队" }
+]
+
+dependencies = [
+    # FastAPI framework
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    
+    # Database
+    "sqlalchemy[asyncio]>=2.0.25",
+    "asyncpg>=0.29.0",
+    "aiosqlite>=0.19.0",
+    "alembic>=1.13.1",
+    
+    # Authentication
+    "pyjwt>=2.8.0",
+    "bcrypt>=4.1.2",
+    "python-multipart>=0.0.6",
+    
+    # Validation & Config
+    "pydantic>=2.5.3",
+    "pydantic-settings>=2.1.0",
+    
+    # Utils
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = ["E", "F", "W", "I", "N"]
+ignore = ["E501"]

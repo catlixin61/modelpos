@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>探测器调试模拟器 - 北岛 AI 姿态矫正器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                            <path d="M2 17l10 5 10-5" />
+                            <path d="M2 12l10 5 10-5" />
+                        </svg>
+                    </div>
+                    <span>探测器调试模拟器</span>
+                </div>
+                <div class="header-actions">
+                    <div class="device-id">
+                        <span class="label">设备ID:</span>
+                        <span class="value" id="device-id">Posture-Detector-001</span>
+                    </div>
+                    <div class="status-indicator" id="power-status">
+                        <span class="status-dot offline"></span>
+                        <span>离线</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 左侧：摄像头和检测 -->
+            <div class="panel camera-panel">
+                <div class="panel-header">
+                    <h2>姿态检测</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-icon" id="camera-toggle" title="切换摄像头">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path
+                                    d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                <circle cx="12" cy="13" r="4" />
+                            </svg>
+                        </button>
+                        <button class="btn btn-icon" id="fullscreen-btn" title="全屏">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path
+                                    d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="camera-container">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="overlay-canvas"></canvas>
+                    <div class="camera-placeholder" id="camera-placeholder">
+                        <div class="placeholder-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path
+                                    d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                <circle cx="12" cy="13" r="4" />
+                            </svg>
+                        </div>
+                        <p>点击启动摄像头</p>
+                        <button class="btn btn-primary" id="start-camera-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3" />
+                            </svg>
+                            启动摄像头
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 检测状态 -->
+                <div class="detection-status">
+                    <div class="status-cards">
+                        <div class="status-card">
+                            <div class="status-label">当前姿态</div>
+                            <div class="status-value" id="current-posture">--</div>
+                        </div>
+                        <div class="status-card">
+                            <div class="status-label">置信度</div>
+                            <div class="status-value" id="confidence">--</div>
+                        </div>
+                        <div class="status-card">
+                            <div class="status-label">持续时间</div>
+                            <div class="status-value" id="duration">0s</div>
+                        </div>
+                        <div class="status-card warning" id="trigger-indicator">
+                            <div class="status-label">触发状态</div>
+                            <div class="status-value" id="trigger-status">未触发</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：控制面板 -->
+            <div class="control-panels">
+                <!-- 电源控制 -->
+                <div class="panel power-panel">
+                    <div class="panel-header">
+                        <h2>电源控制</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="power-switch-container">
+                            <label class="power-switch">
+                                <input type="checkbox" id="power-switch">
+                                <span class="switch-slider"></span>
+                            </label>
+                            <span class="switch-label" id="power-label">开机</span>
+                        </div>
+                        <div class="power-info" id="power-info">
+                            <div class="info-row">
+                                <span class="info-label">运行时间</span>
+                                <span class="info-value" id="uptime">--</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">检测次数</span>
+                                <span class="info-value" id="detection-count">0</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">触发次数</span>
+                                <span class="info-value" id="trigger-count">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BLE 控制 -->
+                <div class="panel ble-panel">
+                    <div class="panel-header">
+                        <h2>BLE 通信</h2>
+                        <div class="ble-status" id="ble-status">
+                            <span class="status-dot offline"></span>
+                            <span>未连接</span>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="ble-info">
+                            <div class="info-row">
+                                <span class="info-label">服务UUID</span>
+                                <span class="info-value mono">0000AAAA-...</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">连接设备</span>
+                                <span class="info-value" id="connected-device">--</span>
+                            </div>
+                        </div>
+                        <div class="ble-actions">
+                            <button class="btn btn-secondary" id="ble-advertise-btn" disabled>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M6.5 6.5l11 11M6.5 17.5l11-11M12 2v4M12 18v4M2 12h4M18 12h4" />
+                                </svg>
+                                开始广播
+                            </button>
+                            <button class="btn btn-outline" id="ble-simulate-connect">
+                                模拟iOS连接
+                            </button>
+                        </div>
+
+                        <!-- 广播日志 -->
+                        <div class="ble-log-section">
+                            <div class="section-header">
+                                <span>广播日志</span>
+                                <button class="btn btn-text" id="clear-ble-log">清空</button>
+                            </div>
+                            <div class="log-container" id="ble-log">
+                                <div class="log-placeholder">暂无日志</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 设备配置 -->
+                <div class="panel config-panel">
+                    <div class="panel-header">
+                        <h2>设备配置</h2>
+                        <span class="config-source" id="config-source">本地</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="config-form">
+                            <div class="form-group">
+                                <label class="form-label">设备名称</label>
+                                <input type="text" class="form-input" id="config-device-name"
+                                    value="Posture-Detector-001">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">震动强度</label>
+                                <div class="range-input">
+                                    <input type="range" id="config-vibration-intensity" min="0" max="100" value="80">
+                                    <span class="range-value" id="vibration-intensity-value">80%</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">震动时长 (ms)</label>
+                                <input type="number" class="form-input" id="config-vibration-duration" value="500"
+                                    min="100" max="2000" step="100">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">触发阈值 (秒)</label>
+                                <input type="number" class="form-input" id="config-trigger-threshold" value="3" min="1"
+                                    max="10" step="0.5">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">检测间隔 (ms)</label>
+                                <input type="number" class="form-input" id="config-detection-interval" value="100"
+                                    min="50" max="500" step="50">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">反馈器MAC地址</label>
+                                <input type="text" class="form-input mono" id="config-feedbacker-mac"
+                                    placeholder="AA:BB:CC:DD:EE:FF">
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn btn-secondary" id="config-reset-btn">重置</button>
+                                <button class="btn btn-primary" id="config-save-btn">保存配置</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部日志区 -->
+        <div class="footer-log">
+            <div class="log-header">
+                <h3>检测日志</h3>
+                <div class="log-actions">
+                    <button class="btn btn-text" id="export-log-btn">导出</button>
+                    <button class="btn btn-text" id="clear-log-btn">清空</button>
+                </div>
+            </div>
+            <div class="log-table-container">
+                <table class="log-table" id="detection-log-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>姿态类型</th>
+                            <th>置信度</th>
+                            <th>持续时间</th>
+                            <th>是否触发</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detection-log-body">
+                    </tbody>
+                </table>
+                <div class="log-empty" id="log-empty">暂无检测日志</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- MediaPipe -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js"
+        crossorigin="anonymous"></script>
+
+    <!-- 应用脚本 -->
+    <script src="js/config.js"></script>
+    <script src="js/posture-detector.js"></script>
+    <script src="js/ble-simulator.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>

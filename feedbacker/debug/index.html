@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北岛 AI 反馈器 - 调试模拟器</title>
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --primary-glow: rgba(0, 242, 255, 0.5);
+            --bg: #0a0c10;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text: #e0e0e0;
+            --danger: #ff4d4d;
+            --success: #00ff88;
+        }
+
+        @font-face {
+            font-family: 'Outfit';
+            src: url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap');
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(123, 97, 255, 0.05) 0%, transparent 40%);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 600;
+            background: linear-gradient(90deg, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            box-shadow: 0 0 10px var(--danger);
+        }
+
+        .status-dot.online {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        /* Main Layout */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Device Visualization */
+        .simulator-pane {
+            background: var(--card-bg);
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+        }
+
+        .device-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            transition: transform 0.1s;
+        }
+
+        /* Mock Feedbacker Hardware */
+        .device-body {
+            width: 120px;
+            height: 180px;
+            background: #1a1a1a;
+            border-radius: 40px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid #333;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .led-indicator {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #222;
+            margin-top: 20px;
+            transition: all 0.3s;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+        }
+
+        .led-indicator.powered-on {
+            opacity: 1;
+            background: #333;
+        }
+
+        .led-indicator.active {
+            background: var(--primary);
+            box-shadow: 0 0 20px var(--primary), 0 0 40px var(--primary-glow);
+        }
+
+        .vibration-ripples {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        .ripple {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            opacity: 0;
+            animation: ripple-effect 1.5s infinite;
+        }
+
+        .ripple:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .ripple:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        @keyframes ripple-effect {
+            0% {
+                width: 120px;
+                height: 180px;
+                opacity: 0.5;
+                border-radius: 40px;
+            }
+
+            100% {
+                width: 250px;
+                height: 350px;
+                opacity: 0;
+                border-radius: 80px;
+            }
+        }
+
+        /* Shaking animation */
+        .vibrating {
+            animation: shake 0.1s infinite alternate;
+        }
+
+        @keyframes shake {
+            from {
+                transform: translate(-50%, -50%) rotate(-1deg);
+            }
+
+            to {
+                transform: translate(-50%, -50%) rotate(1deg);
+            }
+        }
+
+        /* Stats & Logs */
+        .info-pane {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #888;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .stat-unit {
+            font-size: 16px;
+            color: #888;
+            margin-left: 4px;
+        }
+
+        #log-container {
+            flex: 1;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            overflow-y: auto;
+            color: #aaa;
+            max-height: 200px;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+        }
+
+        .log-time {
+            color: var(--primary);
+            margin-right: 8px;
+        }
+
+        /* Controls */
+        .btn {
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px var(--primary-glow);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .slider-group {
+            margin-bottom: 20px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* Battery Visual */
+        .battery-container {
+            width: 40px;
+            height: 20px;
+            border: 2px solid #555;
+            border-radius: 4px;
+            position: relative;
+            padding: 2px;
+        }
+
+        .battery-level {
+            height: 100%;
+            background: var(--success);
+            border-radius: 1px;
+            transition: width 0.5s ease;
+        }
+
+        .battery-cap {
+            width: 3px;
+            height: 10px;
+            background: #555;
+            position: absolute;
+            right: -5px;
+            top: 3px;
+            border-radius: 0 2px 2px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">北岛 · 反馈器调试</div>
+        <div class="status-badge" id="ble-status">
+            <div class="status-dot"></div>
+            <span id="connection-text">未连接</span>
+        </div>
+    </header>
+
+    <main>
+        <section class="simulator-pane">
+            <div class="vibration-ripples" id="ripples">
+                <div class="ripple"></div>
+                <div class="ripple"></div>
+                <div class="ripple"></div>
+            </div>
+
+            <div class="device-container">
+                <div class="device-body" id="hardware-body">
+                    <div class="led-indicator" id="led"></div>
+                    <div style="margin-top: auto; font-size: 10px; color: #444;">ESP32-C3</div>
+                </div>
+            </div>
+
+            <div style="position: absolute; bottom: 30px; text-align: center;">
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">实时硬件状态模拟</p>
+                <div style="display: flex; gap: 20px; align-items: center;">
+                    <div class="power-switch-group"
+                        style="background: rgba(255,255,255,0.05); padding: 10px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 14px; color: #888;">设备电源</span>
+                        <label class="switch"
+                            style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                            <input type="checkbox" id="power-toggle" style="opacity: 0; width: 0; height: 0;">
+                            <span class="slider"
+                                style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 24px;"></span>
+                        </label>
+                        <span id="power-text" style="font-size: 14px; width: 30px;">OFF</span>
+                    </div>
+                    <button class="btn" id="connect-btn" style="width: 200px; margin-top: 0;" disabled>
+                        <span id="btn-icon">🔗</span>
+                        <span id="btn-text">搜索本地硬件</span>
+                    </button>
+                    <button class="btn btn-secondary" id="mock-trigger" style="width: 150px; margin-top: 0;" disabled>
+                        模拟震动反馈
+                    </button>
+                </div>
+                <style>
+                    .switch input:checked+.slider {
+                        background-color: var(--primary);
+                    }
+
+                    .switch .slider:before {
+                        position: absolute;
+                        content: "";
+                        height: 16px;
+                        width: 16px;
+                        left: 4px;
+                        bottom: 4px;
+                        background-color: white;
+                        transition: .4s;
+                        border-radius: 50%;
+                    }
+
+                    .switch input:checked+.slider:before {
+                        transform: translateX(26px);
+                    }
+                </style>
+            </div>
+        </section>
+
+        <section class="info-pane">
+            <!-- stats -->
+            <div class="card">
+                <div class="card-header">
+                    <span>电池状态</span>
+                    <div class="battery-container">
+                        <div class="battery-level" id="battery-bar" style="width: 85%;"></div>
+                        <div class="battery-cap"></div>
+                    </div>
+                </div>
+                <div class="stat-value" id="battery-pct">85<span class="stat-unit">%</span></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">当前震动强度</div>
+                <div class="stat-value" id="vibe-intensity">0<span class="stat-unit">PWM</span></div>
+            </div>
+
+            <!-- Configuration -->
+            <div class="card">
+                <div class="card-header">iOS 配置模拟 (GATT Write)</div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>震动灵敏度</span>
+                        <span id="val-sensitivity">7</span>
+                    </div>
+                    <input type="range" id="slider-sensitivity" min="1" max="10" value="7">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>预设震动时长</span>
+                        <span id="val-duration">500ms</span>
+                    </div>
+                    <input type="range" id="slider-duration" min="100" max="2000" step="100" value="500">
+                </div>
+                <button class="btn btn-secondary" id="sync-config">同步到硬件</button>
+            </div>
+
+            <!-- Logs -->
+            <div class="card" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="card-header">系统日志</div>
+                <div id="log-container">
+                    <div class="log-entry"><span class="log-time">13:31:00</span> 模拟器启动就绪...</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Constants & Config
+        const SERVICE_UUID = 0xFF01; // Custom Service for Feedbacker
+        const CHAR_VIBRATION = 0xFF02;
+        const CHAR_LED = 0xFF03;
+        const CHAR_CONFIG = 0xFF04;
+        const BATTERY_SERVICE = 0x180F;
+        const BATTERY_CHAR = 0x2A19;
+
+        // State
+        let batteryLevel = 85;
+        let deviceId = null;
+        const MAC = new URLSearchParams(window.location.search).get('mac') || 'FF:EE:DD:CC:BB:01';
+        const API_BASE_URL = 'http://192.168.50.61:8000/api/v1';
+
+        // UI Elements
+        const logContainer = document.getElementById('log-container');
+        const connectBtn = document.getElementById('connect-btn');
+        const btnText = document.getElementById('btn-text');
+        const connectionText = document.getElementById('connection-text');
+        const statusDot = document.querySelector('.status-dot');
+        const led = document.getElementById('led');
+        const hardwareBody = document.getElementById('hardware-body');
+        const ripples = document.getElementById('ripples');
+        const vibeValue = document.getElementById('vibe-intensity');
+        const mockBtn = document.getElementById('mock-trigger');
+        const batteryBar = document.getElementById('battery-bar');
+        const batteryPct = document.getElementById('battery-pct');
+        const powerToggle = document.getElementById('power-toggle');
+        const powerText = document.getElementById('power-text');
+        const mockTriggerBtn = document.getElementById('mock-trigger');
+
+        // Utils
+        function log(msg) {
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerHTML = `<span class="log-time">${timeStr}</span> ${msg}`;
+            logContainer.prepend(div);
+        }
+
+        async function reportOnlineStatus(isOnline) {
+            try {
+                if (!deviceId) {
+                    const resp = await fetch(`${API_BASE_URL}/devices/?search=${MAC}`);
+                    const result = await resp.json();
+                    if (result.code === 0 && result.data.items.length > 0) {
+                        deviceId = result.data.items[0].id;
+                    } else {
+                        console.warn('后端未找到该 MAC 地址对应的设备:', MAC);
+                        return;
+                    }
+                }
+
+                await fetch(`${API_BASE_URL}/devices/${deviceId}/online?is_online=${isOnline}`, {
+                    method: 'POST'
+                });
+                console.log(`[Status] 已同步在线状态到后端: ${isOnline ? '在线' : '离线'}`);
+            } catch (err) {
+                console.error('[Status] 同步在线状态失败:', err);
+            }
+        }
+
+        function updateBatteryUI(level) {
+            batteryPct.innerHTML = `${level}<span class="stat-unit">%</span>`;
+            batteryBar.style.width = `${level}%`;
+            batteryBar.style.background = level < 20 ? 'var(--danger)' : 'var(--success)';
+        }
+
+        // Logic - Simulator
+        function triggerVibration(duration = 500, intensity = 255) {
+            if (isVibrating) return;
+            isVibrating = true;
+
+            log(`触发反馈: 强度 ${intensity}, 时长 ${duration}ms`);
+
+            // UI Feedback
+            hardwareBody.classList.add('vibrating');
+            led.classList.add('active');
+            ripples.style.display = 'block';
+            vibeValue.innerHTML = `${intensity}<span class="stat-unit">PWM</span>`;
+
+            setTimeout(() => {
+                hardwareBody.classList.remove('vibrating');
+                led.classList.remove('active');
+                ripples.style.display = 'none';
+                vibeValue.innerHTML = `0<span class="stat-unit">PWM</span>`;
+                isVibrating = false;
+                log('反馈结束');
+            }, duration);
+        }
+
+        // BLE Core
+        async function connectBLE() {
+            try {
+                log('正在搜索蓝牙设备...');
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'BD-FEEDBACK' },
+                        { services: [SERVICE_UUID, BATTERY_SERVICE] }
+                    ],
+                    optionalServices: [BATTERY_SERVICE, SERVICE_UUID]
+                });
+
+                log(`已发现设备: ${device.name}`);
+
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+
+                btnText.innerText = '正在连接...';
+                server = await device.gatt.connect();
+
+                log('GATT 服务已连接');
+                connectionText.innerText = '已连接';
+                statusDot.classList.add('online');
+                btnText.innerText = '断开连接';
+
+                // Get Services
+                setupServices(server);
+
+            } catch (error) {
+                log(`错误: ${error.message}`);
+                onDisconnected();
+            }
+        }
+
+        async function setupServices(server) {
+            try {
+                // Battery
+                const batService = await server.getPrimaryService(BATTERY_SERVICE);
+                const batChar = await batService.getCharacteristic(BATTERY_CHAR);
+
+                const value = await batChar.readValue();
+                batteryLevel = value.getUint8(0);
+                updateBatteryUI(batteryLevel);
+
+                batChar.addEventListener('characteristicvaluechanged', (e) => {
+                    batteryLevel = e.target.value.getUint8(0);
+                    updateBatteryUI(batteryLevel);
+                    log(`电量更新: ${batteryLevel}%`);
+                });
+                await batChar.startNotifications();
+
+                // Custom Feedback Service
+                const feedbackService = await server.getPrimaryService(SERVICE_UUID);
+
+                // Watch for vibration commands (if feedbacker notifies browser)
+                const vibeChar = await feedbackService.getCharacteristic(CHAR_VIBRATION);
+                vibeChar.addEventListener('characteristicvaluechanged', (e) => {
+                    const data = e.target.value;
+                    const intensity = data.getUint8(0);
+                    triggerVibration(500, intensity);
+                });
+                await vibeChar.startNotifications();
+
+                log('服务订阅成功');
+
+            } catch (e) {
+                log(`服务配置失败: ${e.message}`);
+            }
+        }
+
+        function onDisconnected() {
+            log('连接已断开');
+            connectionText.innerText = '未连接';
+            statusDot.classList.remove('online');
+            btnText.innerText = '搜索本地硬件';
+            device = null;
+            server = null;
+        }
+
+        // Event Listeners
+        powerToggle.addEventListener('change', (e) => {
+            const isOn = e.target.checked;
+            powerText.innerText = isOn ? 'ON' : 'OFF';
+            powerText.style.color = isOn ? 'var(--primary)' : '#888';
+
+            if (isOn) {
+                log('设备开机');
+                hardwareBody.style.opacity = '1';
+                led.classList.add('powered-on');
+                connectBtn.disabled = false;
+                mockTriggerBtn.disabled = false;
+            } else {
+                log('设备关机');
+                if (device && device.gatt.connected) device.gatt.disconnect();
+                hardwareBody.style.opacity = '0.4';
+                led.classList.remove('powered-on');
+                led.classList.remove('active');
+                connectBtn.disabled = true;
+                mockTriggerBtn.disabled = true;
+                ripples.style.display = 'none';
+                vibeValue.innerHTML = `0<span class="stat-unit">PWM</span>`;
+            }
+
+            // 同步在线状态到后端
+            reportOnlineStatus(isOn);
+        });
+
+        connectBtn.addEventListener('click', () => {
+            if (device && device.gatt.connected) {
+                device.gatt.disconnect();
+            } else {
+                connectBLE();
+            }
+        });
+
+        mockBtn.addEventListener('click', () => {
+            triggerVibration(
+                parseInt(document.getElementById('slider-duration').value),
+                255
+            );
+        });
+
+        document.getElementById('sync-config').addEventListener('click', () => {
+            const sensitivity = document.getElementById('slider-sensitivity').value;
+            const duration = document.getElementById('slider-duration').value;
+            log(`配置同步: 灵敏度=${sensitivity}, 时长=${duration}ms`);
+
+            // Simulated GATT Write
+            if (server) {
+                // TODO: Actual GATT write logic
+                log('已发送至实体硬件');
+            } else {
+                log('模拟同步成功 (离线模式)');
+            }
+        });
+
+        // Slider Value Displays
+        document.getElementById('slider-sensitivity').oninput = function () {
+            document.getElementById('val-sensitivity').innerText = this.value;
+        };
+        document.getElementById('slider-duration').oninput = function () {
+            document.getElementById('val-duration').innerText = this.value + 'ms';
+        };
+
+        // Battery Drainage Simulation
+        setInterval(() => {
+            if (!device && batteryLevel > 1) {
+                batteryLevel -= 0.1;
+                if (Math.floor(batteryLevel) !== Math.floor(batteryLevel + 0.1)) {
+                    updateBatteryUI(Math.floor(batteryLevel));
+                }
+            }
+        }, 5000);
+
+        // 初始化
+        if (powerToggle.checked) {
+            reportOnlineStatus(true);
+        }
+    </script>
+</body>
+
+</html>

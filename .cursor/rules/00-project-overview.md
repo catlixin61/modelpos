@@ -23,4 +23,5 @@
 
 - **独立运行**: Detector + Feedbacker 可脱离手机独立工作
 - **按需连接**: iOS 仅在主动打开 App 时建立 GATT 连接
-- **单向触发**: Detector → Feedbacker 采用无连接广播模式
+- **账号间广播**: Detector → Feedbacker 采用无连接广播模式，通过 `UserHash` 识别同一账号下的设备
+- **一对多联动**: 一个账号下的 1 个 Feedbacker 可接收多个 Detector 的触发信号

@@ -9,7 +9,9 @@ const state = {
     startTime: Date.now(),
     detectionCount: 0,
     triggerCount: 0,
-    logs: []
+    logs: [],
+    deviceId: null, // 从后端获取的 ID
+    mac: new URLSearchParams(window.location.search).get('mac') || 'AA:BB:CC:DD:EE:01'
 };
 
 // DOM 元素引用
@@ -88,6 +90,11 @@ function initApp() {
     window.addEventListener('ble-status-change', handleBleStatusChange);
 
     showToast('模拟器已就绪', 'success');
+
+    // 初始化在线状态
+    if (elements.powerSwitch.checked) {
+        reportOnlineStatus(true);
+    }
 }
 
 /**
@@ -114,6 +121,14 @@ function setupEventListeners() {
             dot.className = 'status-dot online';
             text.textContent = '在线';
             elements.bleAdvertiseBtn.disabled = false;
+
+            // 自动启动摄像头检测 (开机即探测)
+            if (!postureDetector.isActive) {
+                postureDetector.start().catch(err => {
+                    console.error('自动启动摄像头失败:', err);
+                    showToast('自动启动摄像头失败，请手动点击启动', 'error');
+                });
+            }
         } else {
             dot.className = 'status-dot offline';
             text.textContent = '离线';
@@ -122,6 +137,9 @@ function setupEventListeners() {
             if (bleSimulator.isConnected) bleSimulator.disconnect();
             elements.bleAdvertiseBtn.disabled = true;
         }
+
+        // 同步到后端
+        reportOnlineStatus(isOn);
     });
 
     // BLE 控制
@@ -452,6 +470,36 @@ function showToast(message, type = 'info') {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+
+/**
+ * 同步在线状态到后端
+ */
+async function reportOnlineStatus(isOnline) {
+    try {
+        const mac = state.mac;
+        const apiBase = 'http://192.168.50.61:8000/api/v1'; // 明确后端地址
+
+        // 1. 获取设备 ID (如果尚未获取)
+        if (!state.deviceId) {
+            const resp = await fetch(`${apiBase}/devices/?search=${mac}`);
+            const result = await resp.json();
+            if (result.code === 0 && result.data.items.length > 0) {
+                state.deviceId = result.data.items[0].id;
+            } else {
+                console.warn('后端未找到该 MAC 地址对应的设备:', mac);
+                return;
+            }
+        }
+
+        // 2. 更新在线状态
+        await fetch(`${apiBase}/devices/${state.deviceId}/online?is_online=${isOnline}`, {
+            method: 'POST'
+        });
+        console.log(`[Status] 已同步在线状态到后端: ${isOnline ? '在线' : '离线'}`);
+    } catch (err) {
+        console.error('[Status] 同步在线状态失败:', err);
+    }
 }
 
 // 启动

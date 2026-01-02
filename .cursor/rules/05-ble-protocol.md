@@ -16,12 +16,13 @@ Offset | Size | Field        | Description
 -------|------|--------------|------------------
 0      | 1    | header       | 0xAA (魔数)
 1      | 1    | version      | 协议版本 (0x01)
-2      | 1    | command      | 命令类型
-3      | 1    | intensity    | 震动强度 (0-100)
-4      | 2    | duration_ms  | 震动时长 (ms)
-6      | 2    | reserved     | 保留
-8      | 4    | timestamp    | Unix 时间戳
-12     | 1    | checksum     | XOR 校验和
+2      | 4    | user_hash    | 用户ID哈希 (区分账号)
+6      | 1    | command      | 命令类型
+7      | 1    | intensity    | 震动强度 (0-100)
+8      | 2    | duration_ms  | 震动时长 (ms)
+10     | 4    | timestamp    | Unix 时间戳
+14     | 2    | reserved     | 保留
+16     | 1    | checksum     | XOR 校验和
 ```
 
 ### 命令类型
@@ -51,9 +52,9 @@ Offset | Size | Field        | Description
 |----|------|------|
 | 0x01 | SET_VIBRATION | 设置震动参数 |
 | 0x02 | SET_THRESHOLD | 设置触发阈值 |
-| 0x03 | SET_FEEDBACKER_MAC | 配对反馈器 |
-| 0x04 | CLEAR_LOGS | 清空日志 |
-| 0x10 | SET_TIME | 同步时间 |
+| 0x03 | SET_USER_HASH | 设置当前用户哈希 (用于广播匹配) |
+| 0x04 | CLEAR_LOGS    | 清空日志 |
+| 0x10 | SET_TIME      | 同步时间 |
 
 ## PostureType
 

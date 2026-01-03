@@ -113,7 +113,7 @@
                             <div class="tooltip-content">
                                 <span class="tooltip-title">算法 A: 垂直落差法</span>
                                 监控头部高度位置：<br>
-                                1. <b>高度比:</b> (肩Y-鼻Y)/躯干高 (阈值 < 0.40)<br>
+                                1. <b>高度比:</b> (肩Y-鼻Y)/躯干高 (阈值 < 0.36)<br>
                                     2. <b>低头比:</b> (鼻Y-耳Y)/躯干高 (阈值 > 0.08)
                             </div>
                             <div class="status-label">高度落下 (A)</div>
@@ -147,6 +147,21 @@
                                 计算由髋-肩-耳形成的折线夹角。正常坐姿接近 180°，弯曲严重时夹角减小（阈值 < 165°）。 </div>
                                     <div class="status-label">颈部夹角 (C)</div>
                                     <div class="status-value" id="val-method-c">--</div>
+                            </div>
+                            <!-- 手部状态 (屏蔽位) -->
+                            <div class="status-card" id="card-hand-status">
+                                <div class="tooltip-trigger">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M12 16v-4M12 8h.01" />
+                                    </svg>
+                                </div>
+                                <div class="tooltip-content">
+                                    <span class="tooltip-title">手臂屏蔽</span>
+                                    当检测到任意一只手（手腕）或<b>肘部</b>高于同侧肩膀时，判定为用户正在进行大幅度动作，此时自动<b>暂停</b>驼背报警以防误报。
+                                </div>
+                                <div class="status-label">手臂状态</div>
+                                <div class="status-value" id="debug-hand">--</div>
                             </div>
                             <!-- 置信度 -->
                             <div class="status-card">

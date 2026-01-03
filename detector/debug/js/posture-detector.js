@@ -51,7 +51,7 @@ class PostureDetector {
         });
 
         this.pose.setOptions({
-            modelComplexity: 1,
+            modelComplexity: 2,
             smoothLandmarks: true,
             enableSegmentation: false,
             smoothSegmentation: false,
@@ -86,8 +86,8 @@ class PostureDetector {
                             await this.pose.send({ image: this.videoElement });
                         }
                     },
-                    width: 640,
-                    height: 360
+                    width: 1280,
+                    height: 720
                 });
             }
 
@@ -95,9 +95,8 @@ class PostureDetector {
             this.isActive = true;
             this.notifyStatus('active');
 
-            // 调整 Canvas 尺寸
-            this.canvasElement.width = this.videoElement.videoWidth;
-            this.canvasElement.height = this.videoElement.videoHeight;
+            // 初始调整 Canvas 尺寸（onResults 中也会持续校验）
+            this.syncCanvasSize();
 
             console.log('[Detector] 摄像头已启动');
         } catch (error) {
@@ -215,6 +214,17 @@ class PostureDetector {
     }
 
     /**
+     * 同步 Canvas 尺寸与视频比例
+     */
+    syncCanvasSize() {
+        if (this.canvasElement.width !== this.videoElement.videoWidth && this.videoElement.videoWidth > 0) {
+            this.canvasElement.width = this.videoElement.videoWidth;
+            this.canvasElement.height = this.videoElement.videoHeight;
+            console.log(`[Detector] Canvas 尺寸已同步: ${this.canvasElement.width}x${this.canvasElement.height}`);
+        }
+    }
+
+    /**
      * 绘制骨架和关键点
      */
     drawPose(results) {
@@ -222,10 +232,7 @@ class PostureDetector {
         const landmarks = results.poseLandmarks;
 
         // 确保 canvas 尺寸正确
-        if (this.canvasElement.width !== this.videoElement.videoWidth) {
-            this.canvasElement.width = this.videoElement.videoWidth || 640;
-            this.canvasElement.height = this.videoElement.videoHeight || 360;
-        }
+        this.syncCanvasSize();
 
         ctx.save();
         ctx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
@@ -317,9 +324,19 @@ class PostureDetector {
         const rightEar = landmarks[8];
         const leftHip = landmarks[23];
         const rightHip = landmarks[24];
+        const leftWrist = landmarks[15];
+        const rightWrist = landmarks[16];
+        const leftElbow = landmarks[13];
+        const rightElbow = landmarks[14];
 
         // 计算置信度
         const confidence = (nose.visibility + leftShoulder.visibility + rightShoulder.visibility) / 3;
+
+        // 屏蔽位: 如果任意一只手或肘部举过肩膀，则不进行驼背判定
+        const isHandRaised = (leftWrist && leftWrist.visibility > 0.5 && leftWrist.y < leftShoulder.y) ||
+            (rightWrist && rightWrist.visibility > 0.5 && rightWrist.y < rightShoulder.y) ||
+            (leftElbow && leftElbow.visibility > 0.5 && leftElbow.y < leftShoulder.y) ||
+            (rightElbow && rightElbow.visibility > 0.5 && rightElbow.y < rightShoulder.y);
 
         // 基础中心点
         const midShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
@@ -336,7 +353,7 @@ class PostureDetector {
         // ========== 算法 A: 垂直落差法 (针对低头) ==========
         const noseHeightRatio = (midShoulderY - nose.y) / safeTorsoHeight;
         const noseDropRatio = (nose.y - midEarY) / safeTorsoHeight;
-        const isHunchedA = (noseHeightRatio < 0.40) || (noseDropRatio > 0.08);
+        const isHunchedA = (noseHeightRatio < 0.36) || (noseDropRatio > 0.08);
 
         // ========== 算法 B: 躯干前倾法 (针对前倾) ==========
         // 计算肩膀相对于髋部的水平偏移比例
@@ -358,21 +375,25 @@ class PostureDetector {
         if (neckAngle > 180) neckAngle = 360 - neckAngle;
         const isHunchedC = neckAngle < 165; // 提高颈部夹角灵敏度 (155 -> 165)
 
-        // 最终综合判定
-        const isHunched = isHunchedA || isHunchedB || isHunchedC;
+        // 最终综合判定: 如果举手，即使符合驼背特征也判定为正常
+        let isHunched = (isHunchedA || isHunchedB || isHunchedC);
+        if (isHandRaised) {
+            isHunched = false;
+        }
 
         // 更新调试数据
         this.currentDebugData = {
             ratio: noseHeightRatio.toFixed(2),
             viewType: '通用',
             isHunched: isHunched,
+            isHandRaised: isHandRaised,
             // 记录三个算法的状态用于 UI 展示
             methods: {
                 A: { active: isHunchedA, val: noseHeightRatio.toFixed(2), name: '高度落下' },
                 B: { active: isHunchedB, val: torsoLeanOffset.toFixed(2), name: '躯干前倾' },
                 C: { active: isHunchedC, val: neckAngle.toFixed(0), name: '颈部夹角' }
             },
-            extra: `A:${isHunchedA ? '❌' : '✅'} B:${isHunchedB ? '❌' : '✅'} C:${isHunchedC ? '❌' : '✅'}`
+            extra: `Hand:${isHandRaised ? 'UP' : 'Down'}`
         };
 
         return {

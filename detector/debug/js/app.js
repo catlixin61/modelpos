@@ -239,6 +239,22 @@ function handlePostureUpdate(data) {
             updateMethodCard('card-method-a', 'val-method-a', m.A);
             updateMethodCard('card-method-b', 'val-method-b', m.B);
             updateMethodCard('card-method-c', 'val-method-c', m.C);
+
+            // 更新手部状态卡片
+            const handCard = document.getElementById('card-hand-status');
+            const handVal = document.getElementById('debug-hand');
+            if (handCard && handVal) {
+                const isHandRaised = data.debug.isHandRaised;
+                handVal.textContent = isHandRaised ? '动作中' : '正常';
+                handVal.style.color = isHandRaised ? '#3b82f6' : '#22c55e';
+                if (isHandRaised) {
+                    handCard.style.borderColor = '#3b82f6';
+                    handCard.style.background = 'rgba(59, 130, 246, 0.1)';
+                } else {
+                    handCard.style.borderColor = '';
+                    handCard.style.background = '';
+                }
+            }
         }
     }
 

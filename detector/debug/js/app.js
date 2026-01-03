@@ -11,7 +11,8 @@ const state = {
     triggerCount: 0,
     logs: [],
     deviceId: null, // 从后端获取的 ID
-    mac: new URLSearchParams(window.location.search).get('mac') || 'AA:BB:CC:DD:EE:01'
+    mac: new URLSearchParams(window.location.search).get('mac') || 'AA:BB:CC:DD:EE:01',
+    lastTriggerState: 'idle' // 追踪触发状态：idle, accumulating, triggered
 };
 
 // DOM 元素引用
@@ -29,8 +30,8 @@ const elements = {
     currentPosture: document.getElementById('current-posture'),
     confidence: document.getElementById('confidence'),
     duration: document.getElementById('duration'),
-    triggerStatus: document.getElementById('trigger-status'),
-    triggerIndicator: document.getElementById('trigger-indicator'),
+    triggerStatus: null,
+    triggerIndicator: null,
 
     // 统计
     uptime: document.getElementById('uptime'),
@@ -44,24 +45,10 @@ const elements = {
 
     // BLE
     bleStatus: document.getElementById('ble-status'),
-    bleAdvertiseBtn: document.getElementById('ble-advertise-btn'),
-    bleSimulateBtn: document.getElementById('ble-simulate-connect'),
+
     bleLog: document.getElementById('ble-log'),
     connectedDevice: document.getElementById('connected-device'),
     clearBleLogBtn: document.getElementById('clear-ble-log'),
-
-    // 配置
-    configInputs: {
-        name: document.getElementById('config-device-name'),
-        vibrationIntensity: document.getElementById('config-vibration-intensity'),
-        vibrationIntensityVal: document.getElementById('vibration-intensity-value'),
-        vibrationDuration: document.getElementById('config-vibration-duration'),
-        triggerThreshold: document.getElementById('config-trigger-threshold'),
-        detectionInterval: document.getElementById('config-detection-interval'),
-        feedbackerMac: document.getElementById('config-feedbacker-mac'),
-    },
-    saveConfigBtn: document.getElementById('config-save-btn'),
-    resetConfigBtn: document.getElementById('config-reset-btn'),
 
     // 日志
     logTableBody: document.getElementById('detection-log-body'),
@@ -77,7 +64,6 @@ const elements = {
  * 初始化应用
  */
 function initApp() {
-    loadConfigToUI();
     setupEventListeners();
     setupTimers();
 
@@ -88,6 +74,16 @@ function initApp() {
     // 监听BLE事件
     window.addEventListener('ble-log', handleBleLog);
     window.addEventListener('ble-status-change', handleBleStatusChange);
+
+    // 页面关闭时发送离线状态
+    window.addEventListener('beforeunload', () => {
+        if (elements.powerSwitch.checked) {
+            // 使用 fetch + keepalive 确保在页面关闭时可靠发送
+            const apiBase = 'http://localhost:8701/api/v1';
+            const url = `${apiBase}/devices/mac/${encodeURIComponent(state.mac)}/online?is_online=false`;
+            fetch(url, { method: 'POST', keepalive: true });
+        }
+    });
 
     showToast('模拟器已就绪', 'success');
 
@@ -120,7 +116,7 @@ function setupEventListeners() {
         if (isOn) {
             dot.className = 'status-dot online';
             text.textContent = '在线';
-            elements.bleAdvertiseBtn.disabled = false;
+
 
             // 自动启动摄像头检测 (开机即探测)
             if (!postureDetector.isActive) {
@@ -135,34 +131,17 @@ function setupEventListeners() {
             if (postureDetector.isActive) postureDetector.stop();
             if (bleSimulator.isAdvertising) bleSimulator.stopAdvertising();
             if (bleSimulator.isConnected) bleSimulator.disconnect();
-            elements.bleAdvertiseBtn.disabled = true;
+
         }
 
         // 同步到后端
         reportOnlineStatus(isOn);
     });
 
-    // BLE 控制
-    elements.bleAdvertiseBtn.addEventListener('click', () => {
-        if (bleSimulator.isAdvertising) {
-            bleSimulator.stopAdvertising();
-        } else {
-            bleSimulator.startAdvertising();
-        }
-    });
 
-    elements.bleSimulateBtn.addEventListener('click', () => bleSimulator.simulateConnect());
     elements.clearBleLogBtn.addEventListener('click', () => {
         elements.bleLog.innerHTML = '<div class="log-placeholder">暂无日志</div>';
     });
-
-    // 配置控制
-    elements.configInputs.vibrationIntensity.addEventListener('input', (e) => {
-        elements.configInputs.vibrationIntensityVal.textContent = e.target.value + '%';
-    });
-
-    elements.saveConfigBtn.addEventListener('click', saveConfigFromUI);
-    elements.resetConfigBtn.addEventListener('click', resetConfig);
 
     // 日志控制
     elements.clearLogBtn.addEventListener('click', () => {
@@ -211,50 +190,7 @@ function setupTimers() {
     }, 1000);
 }
 
-/**
- * 加载配置到 UI
- */
-function loadConfigToUI() {
-    const cfg = configManager.get();
-    elements.configInputs.name.value = cfg.deviceName;
-    elements.configInputs.vibrationIntensity.value = cfg.vibrationIntensity;
-    elements.configInputs.vibrationIntensityVal.textContent = cfg.vibrationIntensity + '%';
-    elements.configInputs.vibrationDuration.value = cfg.vibrationDuration;
-    elements.configInputs.triggerThreshold.value = cfg.triggerThreshold;
-    elements.configInputs.detectionInterval.value = cfg.detectionInterval;
-    elements.configInputs.feedbackerMac.value = cfg.feedbackerMac || '';
-}
 
-/**
- * 从 UI 保存配置
- */
-function saveConfigFromUI() {
-    const newConfig = {
-        deviceName: elements.configInputs.name.value,
-        vibrationIntensity: parseInt(elements.configInputs.vibrationIntensity.value),
-        vibrationDuration: parseInt(elements.configInputs.vibrationDuration.value),
-        triggerThreshold: parseFloat(elements.configInputs.triggerThreshold.value),
-        detectionInterval: parseInt(elements.configInputs.detectionInterval.value),
-        feedbackerMac: elements.configInputs.feedbackerMac.value
-    };
-
-    configManager.set(newConfig);
-    configManager.saveToStorage();
-    showToast('配置已保存', 'success');
-
-    // 如果 BLE 已连接，模拟发送配置更新通知? (实际上配置是 Write 属性)
-}
-
-/**
- * 重置配置
- */
-function resetConfig() {
-    if (confirm('确定要重置所有配置为默认值吗？')) {
-        configManager.reset();
-        loadConfigToUI();
-        showToast('配置已重置', 'info');
-    }
-}
 
 /**
  * 处理姿态更新
@@ -267,40 +203,80 @@ function handlePostureUpdate(data) {
     elements.confidence.textContent = (data.confidence * 100).toFixed(0) + '%';
     elements.duration.textContent = (data.duration / 1000).toFixed(1) + 's';
 
+    // 更新调试数据
+    if (data.debug) {
+        const personEl = document.getElementById('debug-person');
+        const fpsEl = document.getElementById('debug-fps');
+
+        if (personEl) {
+            personEl.textContent = data.isPersonDetected ? '有人' : '无人';
+            personEl.style.color = data.isPersonDetected ? '#22c55e' : '#ef4444';
+        }
+
+        if (fpsEl) {
+            fpsEl.textContent = (data.fps || 0) + ' FPS';
+            fpsEl.style.color = (data.fps > 5) ? '#00f2ff' : '#64748b';
+        }
+
+        // 处理 A/B/C 详细算法状态 (卡片化)
+        if (data.debug.methods) {
+            const m = data.debug.methods;
+            const updateMethodCard = (id, valId, method) => {
+                const card = document.getElementById(id);
+                const val = document.getElementById(valId);
+                if (card && val) {
+                    val.textContent = `${method.val}${method.name === '颈部夹角' ? '°' : ''}`;
+                    val.style.color = method.active ? '#ef4444' : '#22c55e';
+                    // 动态切换卡片样式
+                    if (method.active) {
+                        card.classList.add('warning');
+                    } else {
+                        card.classList.remove('warning');
+                    }
+                }
+            };
+
+            updateMethodCard('card-method-a', 'val-method-a', m.A);
+            updateMethodCard('card-method-b', 'val-method-b', m.B);
+            updateMethodCard('card-method-c', 'val-method-c', m.C);
+        }
+    }
+
     // 检测次数
     state.detectionCount++;
     elements.detectionCount.textContent = state.detectionCount;
 
-    // 触发判断 logic
-    const thresholdMs = configManager.get('triggerThreshold') * 1000;
-    const isBadPosture = data.type !== POSTURE_TYPE.NORMAL;
+    // 触发判断 - 只针对驼背
+    const thresholdMs = configManager.get('triggerThreshold') * 1000; // 5秒
+    const isHunchedPosture = data.type === POSTURE_TYPE.HUNCHED;
 
-    if (isBadPosture && data.duration > thresholdMs) {
-        // 触发逻辑
-        if (elements.triggerStatus.textContent !== '已触发') { // 简单的防抖，避免重复触发
-            elements.triggerStatus.textContent = '已触发';
-            elements.triggerIndicator.className = 'status-card danger';
+    if (isHunchedPosture && data.duration > thresholdMs) {
+        // 驼背超过5秒，触发广播
+        if (state.lastTriggerState !== 'triggered') {
+            state.lastTriggerState = 'triggered';
 
             state.triggerCount++;
             elements.triggerCount.textContent = state.triggerCount;
 
-            // 发送 BLE 广播
-            let cmd = COMMAND_TYPE.TRIGGER_HUNCHED;
-            if (data.type === POSTURE_TYPE.LEAN_LEFT) cmd = COMMAND_TYPE.TRIGGER_LEAN_LEFT;
-            if (data.type === POSTURE_TYPE.LEAN_RIGHT) cmd = COMMAND_TYPE.TRIGGER_LEAN_RIGHT;
+            // 确保广播已开启
+            if (!bleSimulator.isAdvertising) {
+                bleSimulator.startAdvertising();
+            }
 
+            // 发送驼背触发广播
             bleSimulator.sendTrigger(
-                cmd,
+                COMMAND_TYPE.TRIGGER_HUNCHED,
                 configManager.get('vibrationIntensity'),
                 configManager.get('vibrationDuration')
             );
 
             // 记录日志
             addLogEntry(data, true);
+
+            showToast(`驼背触发！持续${(data.duration / 1000).toFixed(1)}秒`, 'warning');
         }
     } else {
-        elements.triggerStatus.textContent = isBadPosture ? '积累中...' : '未触发';
-        elements.triggerIndicator.className = isBadPosture ? 'status-card warning' : 'status-card normal';
+        state.lastTriggerState = isHunchedPosture ? 'accumulating' : 'idle';
     }
 
     // 发送 Notification (GATT)
@@ -400,36 +376,15 @@ function handleBleLog(e) {
 function handleBleStatusChange(e) {
     const { isAdvertising, isConnected, deviceName } = e.detail;
 
-    // 广播按钮状态
-    if (isAdvertising) {
-        elements.bleAdvertiseBtn.innerHTML = `
-            <div class="loading-spinner" style="width:16px;height:16px;"></div> 停止广播
-        `;
-        elements.bleAdvertiseBtn.classList.add('btn-primary');
-        elements.bleAdvertiseBtn.classList.remove('btn-secondary');
-    } else {
-        elements.bleAdvertiseBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M6.5 6.5l11 11M6.5 17.5l11-11M12 2v4M12 18v4M2 12h4M18 12h4"/>
-            </svg> 开始广播
-        `;
-        elements.bleAdvertiseBtn.classList.remove('btn-primary');
-        elements.bleAdvertiseBtn.classList.add('btn-secondary');
-    }
-
     // 连接状态
     if (isConnected) {
         elements.bleStatus.innerHTML = `<span class="status-dot online"></span> 已连接`;
         elements.bleStatus.classList.add('connected');
         elements.connectedDevice.textContent = deviceName;
-        elements.bleSimulateBtn.textContent = '断开连接';
-        elements.bleSimulateBtn.classList.add('btn-danger');
     } else {
         elements.bleStatus.innerHTML = `<span class="status-dot offline"></span> 未连接`;
         elements.bleStatus.classList.remove('connected');
         elements.connectedDevice.textContent = '--';
-        elements.bleSimulateBtn.textContent = '模拟iOS连接';
-        elements.bleSimulateBtn.classList.remove('btn-danger');
     }
 }
 
@@ -478,25 +433,19 @@ function showToast(message, type = 'info') {
 async function reportOnlineStatus(isOnline) {
     try {
         const mac = state.mac;
-        const apiBase = 'http://192.168.50.61:8000/api/v1'; // 明确后端地址
+        const apiBase = 'http://localhost:8701/api/v1'; // 明确后端地址
 
-        // 1. 获取设备 ID (如果尚未获取)
-        if (!state.deviceId) {
-            const resp = await fetch(`${apiBase}/devices/?search=${mac}`);
-            const result = await resp.json();
-            if (result.code === 0 && result.data.items.length > 0) {
-                state.deviceId = result.data.items[0].id;
-            } else {
-                console.warn('后端未找到该 MAC 地址对应的设备:', mac);
-                return;
-            }
-        }
-
-        // 2. 更新在线状态
-        await fetch(`${apiBase}/devices/${state.deviceId}/online?is_online=${isOnline}`, {
+        // 直接使用 MAC 地址更新在线状态
+        const resp = await fetch(`${apiBase}/devices/mac/${encodeURIComponent(mac)}/online?is_online=${isOnline}`, {
             method: 'POST'
         });
-        console.log(`[Status] 已同步在线状态到后端: ${isOnline ? '在线' : '离线'}`);
+
+        if (resp.ok) {
+            console.log(`[Status] 已同步在线状态到后端: ${isOnline ? '在线' : '离线'}`);
+        } else {
+            const result = await resp.json();
+            console.warn('[Status] 同步在线状态失败:', result.message || resp.statusText);
+        }
     } catch (err) {
         console.error('[Status] 同步在线状态失败:', err);
     }

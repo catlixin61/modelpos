@@ -990,6 +990,81 @@ body {
 }
 
 /* ========================================
+   工具提示 (Tooltip)
+   ======================================== */
+.status-card {
+    position: relative;
+}
+
+.tooltip-trigger {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
+    cursor: help;
+    transition: var(--transition-fast);
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-card:hover .tooltip-trigger {
+    opacity: 1;
+    color: var(--primary-light);
+}
+
+.tooltip-content {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    width: 240px;
+    padding: 12px 14px;
+    background: rgba(18, 18, 42, 0.95);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    text-align: left;
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.tooltip-content::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: rgba(18, 18, 42, 0.95) transparent transparent transparent;
+}
+
+.status-card:hover .tooltip-content {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.tooltip-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+    font-size: 0.8rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 4px;
+}
+
+/* ========================================
    响应式适配
    ======================================== */
 @media (max-width: 768px) {

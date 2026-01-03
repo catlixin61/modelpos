@@ -15,7 +15,7 @@ const DEFAULT_CONFIG = {
 
     // 检测配置
     detectionInterval: 100,     // 检测间隔 ms
-    triggerThreshold: 3,        // 触发阈值 (秒)
+    triggerThreshold: 5,        // 触发阈值 (秒) - 驼背持续5秒触发
 
     // 反馈器配置
     feedbackerMac: '',          // 配对的反馈器 MAC
@@ -31,16 +31,12 @@ const DEFAULT_CONFIG = {
     // 姿态类型定义
     postureTypes: {
         NORMAL: 0,
-        HUNCHED: 1,
-        LEAN_LEFT: 2,
-        LEAN_RIGHT: 3
+        HUNCHED: 1
     },
 
     // 命令类型
     commands: {
         TRIGGER_HUNCHED: 0x01,
-        TRIGGER_LEAN_LEFT: 0x02,
-        TRIGGER_LEAN_RIGHT: 0x03,
         HEARTBEAT: 0x10,
         STOP: 0xFF
     },
@@ -253,9 +249,7 @@ class ConfigManager {
     getPostureName(type) {
         const names = {
             0: '正常',
-            1: '驼背',
-            2: '左倾',
-            3: '右倾'
+            1: '驼背'
         };
         return names[type] || '未知';
     }

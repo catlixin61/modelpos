@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     jwt_refresh_token_expire_days: int = 30
     
     # 管理员初始账号
-    admin_phone: str = "13800000000"
-    admin_password: str = "admin123"
+    admin_phone: str = "13810799940"
+    admin_password: str = "123456"
     
     # 调试模式
     debug: bool = True

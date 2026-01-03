@@ -207,3 +207,24 @@ async def update_online_status(
     device = await DeviceService.update_online_status(db, device, is_online)
     
     return ResponseModel(data=_build_device_response(device))
+
+
+@router.post("/mac/{mac_address}/online", response_model=ResponseModel[DeviceResponse], summary="按MAC地址更新在线状态")
+async def update_online_status_by_mac(
+    mac_address: str,
+    is_online: bool = Query(...),
+    db: DbSession = None,
+):
+    """
+    按MAC地址更新设备在线状态 (模拟器/设备端调用，无需认证)
+    """
+    device = await DeviceService.get_device_by_mac(db, mac_address)
+    if not device:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="设备不存在",
+        )
+    
+    device = await DeviceService.update_online_status(db, device, is_online)
+    
+    return ResponseModel(data=_build_device_response(device))

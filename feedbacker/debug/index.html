@@ -500,8 +500,11 @@
         // State
         let batteryLevel = 85;
         let deviceId = null;
+        let device = null;      // Web Bluetooth 设备引用
+        let server = null;      // GATT 服务器引用
+        let isVibrating = false; // 震动状态
         const MAC = new URLSearchParams(window.location.search).get('mac') || 'FF:EE:DD:CC:BB:01';
-        const API_BASE_URL = 'http://192.168.50.61:8000/api/v1';
+        const API_BASE_URL = 'http://localhost:8701/api/v1';
 
         // UI Elements
         const logContainer = document.getElementById('log-container');
@@ -532,21 +535,17 @@
 
         async function reportOnlineStatus(isOnline) {
             try {
-                if (!deviceId) {
-                    const resp = await fetch(`${API_BASE_URL}/devices/?search=${MAC}`);
-                    const result = await resp.json();
-                    if (result.code === 0 && result.data.items.length > 0) {
-                        deviceId = result.data.items[0].id;
-                    } else {
-                        console.warn('后端未找到该 MAC 地址对应的设备:', MAC);
-                        return;
-                    }
-                }
-
-                await fetch(`${API_BASE_URL}/devices/${deviceId}/online?is_online=${isOnline}`, {
+                // 直接使用 MAC 地址更新在线状态
+                const resp = await fetch(`${API_BASE_URL}/devices/mac/${encodeURIComponent(MAC)}/online?is_online=${isOnline}`, {
                     method: 'POST'
                 });
-                console.log(`[Status] 已同步在线状态到后端: ${isOnline ? '在线' : '离线'}`);
+
+                if (resp.ok) {
+                    console.log(`[Status] 已同步在线状态到后端: ${isOnline ? '在线' : '离线'}`);
+                } else {
+                    const result = await resp.json();
+                    console.warn('[Status] 同步在线状态失败:', result.message || resp.statusText);
+                }
             } catch (err) {
                 console.error('[Status] 同步在线状态失败:', err);
             }
@@ -738,6 +737,15 @@
         if (powerToggle.checked) {
             reportOnlineStatus(true);
         }
+
+        // 页面关闭时发送离线状态
+        window.addEventListener('beforeunload', () => {
+            if (powerToggle.checked) {
+                // 使用 fetch + keepalive 确保在页面关闭时可靠发送
+                const url = `${API_BASE_URL}/devices/mac/${encodeURIComponent(MAC)}/online?is_online=false`;
+                fetch(url, { method: 'POST', keepalive: true });
+            }
+        });
     </script>
 </body>
 
